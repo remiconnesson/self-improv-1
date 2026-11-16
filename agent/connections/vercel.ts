@@ -24,10 +24,10 @@ export default defineMcpClientConnection({
     const caller = session.auth.current
     if (isScheduleAuth(caller) || (caller !== null && isMaintainer(caller.principalId))) {
       // The Vercel MCP rejects app (client credentials) tokens for this connector,
-      // so runs share one dedicated grant. When it's missing, the agent posts a
-      // sign-in button and a maintainer authorizes it once.
+      // so runs share one dedicated grant, authorized once by a maintainer.
       return connect({
         connector: 'vercel/github-agent',
+        principalType: 'app',
         createSubject: () => ({ type: 'user' as const, id: 'self-review', issuer: 'self-improv-1' }),
       })
     }
