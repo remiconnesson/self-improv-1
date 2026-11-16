@@ -2,7 +2,11 @@ import { connect } from '@vercel/connect/eve'
 import { defineMcpClientConnection } from 'eve/connections'
 import { isScheduleAuth } from 'eve/schedules'
 
-const maintainers = new Set((process.env.MAINTAINERS ?? '').split(','))
+// eve names a Slack user `slack:<team>:<user>`. On Enterprise Grid the team part is
+// the installation workspace, so compare the user part, which is unique across the org.
+const userPart = (id: string) => id.trim().split(':').at(-1) ?? ''
+const maintainers = new Set((process.env.MAINTAINERS ?? '').split(',').map(userPart).filter(Boolean))
+const isMaintainer = (principalId: string) => principalId.startsWith('slack:') && maintainers.has(userPart(principalId))
 
 export default defineMcpClientConnection({
   url: 'https://mcp.vercel.com',
@@ -18,7 +22,7 @@ export default defineMcpClientConnection({
   },
   auth: ({ session }) => {
     const caller = session.auth.current
-    if (isScheduleAuth(caller) || (caller !== null && maintainers.has(caller.principalId))) {
+    if (isScheduleAuth(caller) || (caller !== null && isMaintainer(caller.principalId))) {
       // The Vercel MCP rejects app (client credentials) tokens for this connector,
       // so runs share one dedicated grant. When it's missing, the agent posts a
       // sign-in button and a maintainer authorizes it once.
