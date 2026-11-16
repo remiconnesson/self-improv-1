@@ -19,7 +19,13 @@ export default defineMcpClientConnection({
   auth: ({ session }) => {
     const caller = session.auth.current
     if (isScheduleAuth(caller) || (caller !== null && maintainers.has(caller.principalId))) {
-      return connect({ connector: 'vercel/github-agent', principalType: 'app' })
+      // The Vercel MCP rejects app (client credentials) tokens for this connector,
+      // so runs use one dedicated grant, authorized once by a maintainer.
+      return connect({
+        connector: 'vercel/github-agent',
+        principalType: 'app',
+        createSubject: () => ({ type: 'user' as const, id: 'self-review', issuer: 'self-improv-1' }),
+      })
     }
     return {
       principalType: 'app',
